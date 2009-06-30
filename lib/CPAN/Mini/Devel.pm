@@ -1,4 +1,4 @@
-package CPAN::Mini::Devel;
+package CPAN::Mini::Devel::Recent;
 use 5.006;
 use strict;
 use warnings;
@@ -14,6 +14,7 @@ use File::Temp 0.20;
 use File::Spec;
 use File::Path ();
 use File::Basename qw/basename/;
+use File::Rsync::Mirror::Recent;
 
 our @ISA = 'CPAN::Mini';
 
@@ -21,19 +22,28 @@ our @ISA = 'CPAN::Mini';
 # globals
 #--------------------------------------------------------------------------#
 
-my $tmp_dir = File::Temp->newdir( 'CPAN-Mini-Devel-XXXXXXX', 
+my $tmp_dir = File::Temp->newdir( 'CPAN-Mini-Devel-Recent-XXXXXXX', 
     DIR => File::Spec->tmpdir,
 );
 
 #--------------------------------------------------------------------------#
-# Extend index methods to miror find-ls.gz
+# Extend index methods to mirror RECENT* files
 #--------------------------------------------------------------------------#
 
-my $index_file = 'indices/find-ls.gz';
+my @recent_files = qw(
+  authors/RECENT-1h.yaml
+  authors/RECENT-6h.yaml
+  authors/RECENT-1d.yaml
+  authors/RECENT-1W.yaml
+  authors/RECENT-1M.yaml
+  authors/RECENT-1Q.yaml
+  authors/RECENT-1Y.yaml
+  authors/RECENT-Z.yaml
+);
 
 sub _fixed_mirrors {
     my $self = shift;
-    return ($index_file, $self->SUPER::_fixed_mirrors);
+    return (@recent_files, $self->SUPER::_fixed_mirrors);
 }
 
 #--------------------------------------------------------------------------#
@@ -41,12 +51,12 @@ sub _fixed_mirrors {
 #--------------------------------------------------------------------------#
 
 sub _get_mirror_list {
-	my $self  = shift;
+        my $self  = shift;
 
-    ## CPAN::Mini::Devel addition using find-ls.gz
-    my $file_ls =  File::Spec->catfile(
+    ## CPAN::Mini::Devel::Recent addition using find-ls.gz
+    my $recent =  File::Spec->catfile(
         $self->{scratch},
-        qw(indices find-ls.gz)
+        qw(authors RECENT-1h.yaml)
     );
 
     my $packages = File::Spec->catfile(
@@ -54,7 +64,7 @@ sub _get_mirror_list {
         qw(modules 02packages.details.txt.gz)
     );
     
-    return $self->_parse_module_index( $packages, $file_ls );
+    return $self->_parse_module_index( $packages, $recent );
 }
 
 #--------------------------------------------------------------------------#
@@ -85,10 +95,10 @@ my %months = (
 # note on archive suffixes -- .pm.gz shows up in 02packagesf
 my %re = (
     perls => qr{(?:
-		  /(?:emb|syb|bio)?perl-\d 
-		| /(?:parrot|ponie|kurila|Perl6-Pugs)-\d 
-		| /perl-?5\.004 
-		| /perl_mlb\.zip 
+                  /(?:emb|syb|bio)?perl-\d 
+                | /(?:parrot|ponie|kurila|Perl6-Pugs)-\d 
+                | /perl-?5\.004 
+                | /perl_mlb\.zip 
     )}xi,
     archive => qr{\.(?:tar\.(?:bz2|gz|Z)|t(?:gz|bz)|(?<!ppm\.)zip|pm.gz)$}i,
     target_dir => qr{
@@ -136,7 +146,7 @@ sub _base_name {
 sub _parse_module_index {
     my ($self, $packages, $file_ls ) = @_;
 
-	# first walk the packages list
+        # first walk the packages list
     # and build an index
 
     my (%valid_bases, %valid_distros, %mirror);
@@ -274,7 +284,7 @@ __END__
 
 = NAME
 
-CPAN::Mini::Devel - Create CPAN::Mini mirror with developer releases
+CPAN::Mini::Devel::Recent - Create CPAN::Mini mirror with recent developer releases
 
 = VERSION
 
@@ -282,15 +292,19 @@ This documentation describes version %%VERSION%%.
 
 = SYNOPSIS
 
-    $ minicpan -c CPAN::Mini::Devel
+    $ minicpan -c CPAN::Mini::Devel::Recent
 
 = DESCRIPTION
 
+CPAN::Mini::Devel::Recent is similar to [CPAN::Mini::Devel], except it
+uses the new, experimental {RECENT-*} index files on CPAN, which are updated
+more frequently than {indices/find-ls.gz} file.
+
 Normally, [CPAN::Mini] creates a minimal CPAN mirror with the latest version of
 each distribution, but excluding developer releases (those with an underscore
-in the version number, like 0.10_01).  
+in the version number, like 0.10_01).
 
-CPAN::Mini::Devel enhances CPAN::Mini to include the latest developer and
+CPAN::Mini::Devel::Recent enhances CPAN::Mini to include the latest developer and
 non-developer release in the mirror. For example, if Foo-Bar-0.01,
 Foo-Bar-0.02, Foo-Bar-0.03_01 and Foo-Bar-0.03_02 are on CPAN, only
 Foo-Bar-0.02 and Foo-Bar 0.03_02 will be mirrored. This is particularly useful
@@ -302,9 +316,6 @@ name already in the normal CPAN packages list.
 There may be errors retrieving very new modules if they are indexed but not
 yet synchronized on the mirror.
 
-CPAN::Mini::Devel also mirrors the {indices/find-ls.gz} file, which is used
-to identify developer releases.
-
 = USAGE
 
 See [Mini::CPAN].
@@ -313,7 +324,7 @@ See [Mini::CPAN].
 
 Please report any bugs or feature using the CPAN Request Tracker.  
 Bugs can be submitted through the web interface at 
-[http://rt.cpan.org/Dist/Display.html?Queue=CPAN-Mini-Devel]
+[http://rt.cpan.org/Dist/Display.html?Queue=CPAN-Mini-Devel-Recent]
 
 When submitting a bug or request, please include a test-file or a patch to an
 existing test-file that illustrates the bug or desired feature.
@@ -321,6 +332,7 @@ existing test-file that illustrates the bug or desired feature.
 = SEE ALSO
 
 * [CPAN::Mini]
+* [CPAN::Mini::Devel]
 
 = AUTHOR
 
@@ -328,11 +340,11 @@ David A. Golden (DAGOLDEN)
 
 = COPYRIGHT AND LICENSE
 
-Copyright (c) 2008 by David A. Golden
+Copyright (c) 2009 by David A. Golden
 
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
-You may obtain a copy of the License at 
+You may obtain a copy of the License at
 [http://www.apache.org/licenses/LICENSE-2.0]
 
 Files produced as output though the use of this software, shall not be

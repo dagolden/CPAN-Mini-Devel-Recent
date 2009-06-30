@@ -5,7 +5,7 @@ eval "require Pod::WikiDoc";
 my $class = $@ ? "Module::Build" : "Module::Build::WikiDoc";
 eval "require $class";
 $class->new( 
-    module_name         => 'CPAN::Mini::Devel',
+    module_name         => 'CPAN::Mini::Devel::Recent',
     dist_author         => 'David A. Golden <dagolden@cpan.org>',
     license             => 'apache',
     create_readme       => 1,
@@ -20,6 +20,7 @@ $class->new(
         'File::Path' => 0,
         'File::Spec' => 3.27, 
         'File::Temp' => 0.20, 
+        'File::Rsync::Mirror::Recent' => 'v0.0.7',
     },
     build_requires => {
         'Test::More' => 0.62, # 0.47 in perl 5.006002; 0.62 in perl 5.008008; 
