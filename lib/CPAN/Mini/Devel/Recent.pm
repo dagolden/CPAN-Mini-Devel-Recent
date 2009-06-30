@@ -2,7 +2,7 @@ package CPAN::Mini::Devel::Recent;
 use 5.006;
 use strict;
 use warnings;
-our $VERSION = '0.03'; 
+our $VERSION = '0.01'; 
 $VERSION = eval $VERSION; ## no critic
 
 use Config;
@@ -144,7 +144,7 @@ sub _base_name {
 #--------------------------------------------------------------------------#-
 
 sub _parse_module_index {
-    my ($self, $packages, $file_ls ) = @_;
+    my ($self, $packages, $recent ) = @_;
 
         # first walk the packages list
     # and build an index
@@ -187,22 +187,31 @@ sub _parse_module_index {
 #    $self->trace("Bases\n");
 #    Dump \%valid_bases;
 
-    # next walk the find-ls file
-    local *FH;
-    tie *FH, 'CPAN::Tarzip', $file_ls;
+    # next walk the recent list
+    $self->trace( "Scanning RECENT files for dev releases ...\n" );
+    my $rr = File::Rsync::Mirror::Recent->new( local => $recent );
+    my $records = $rr->news;
 
-    $self->trace( "Scanning find-ls ...\n" );
-    while ( defined ( my $line = <FH> ) ) {
+    my @epoch_order = sort { $records->[$a]{epoch} <=> $records->[$b]{epoch} } 
+                      0 .. @$records - 1;
+    
+    my %living;
+    for my $i ( @epoch_order ) {
+      my $rec = $records->[$i];
+      if ( $rec->{type} eq 'new' ) {
+        $living{$rec->{path}} = 1;
+      }
+      elsif ( $rec->{type} eq 'delete' ) {
+        $living{$rec->{path}} = 0;
+      }
+    }
+
+    for my $i ( @epoch_order ) {
+        next unless $living{$records->[$i]{path}};
         my %stat;
-        @stat{qw/inode blocks perms links owner group size datetime name linkname/}
-            = split q{ }, $line;
+        @stat{qw/name datetime type/}=@{$records->[$i]}{qw/path epoch type/};
         
-        unless ($stat{name} && $stat{perms} && $stat{datetime}) {
-            $self->trace("Couldn't parse '$line' \n");
-            next;
-        }
-        # skip directories, symlinks and things that aren't a tarball
-        next if $stat{perms} eq "l" || substr($stat{perms},0,1) eq "d";
+        # skip things that aren't a tarball
         next unless $stat{name} =~ $re{target_dir};
         next unless $stat{name} =~ $re{archive};
 
@@ -248,7 +257,7 @@ sub _parse_module_index {
         }
     }
 
-    # pick up anything from packages that wasn't found find-ls
+    # pick up anything from packages we didn't already get (shouldn't happen)
     for my $name ( keys %latest ) {
         my $base_id = $latest{$name}{base_id};
         $mirror{$base_id} = $latest{$name}{datetime} unless $mirror{$base_id};
