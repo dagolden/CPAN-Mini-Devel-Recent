@@ -2,12 +2,12 @@ package CPAN::Mini::Devel::Recent;
 use 5.006;
 use strict;
 use warnings;
-our $VERSION = '0.01'; 
+our $VERSION = '0.01';
 $VERSION = eval $VERSION; ## no critic
 
 use Config;
 use CPAN::Mini;
-use CPAN (); 
+use CPAN ();
 use CPAN::Tarzip;
 use CPAN::HandleConfig;
 use File::Temp 0.20;
@@ -15,6 +15,8 @@ use File::Spec;
 use File::Path ();
 use File::Basename qw/basename/;
 use File::Rsync::Mirror::Recent;
+use File::Rsync::Mirror::Recentfile;
+use YAML::Syck 'LoadFile';
 
 our @ISA = 'CPAN::Mini';
 
@@ -22,7 +24,11 @@ our @ISA = 'CPAN::Mini';
 # globals
 #--------------------------------------------------------------------------#
 
-my $tmp_dir = File::Temp->newdir( 'CPAN-Mini-Devel-Recent-XXXXXXX', 
+BEGIN {
+  *DEBUG = $ENV{CPAN_MINI_DEBUG} ? sub {1} : sub {0};
+}
+
+my $tmp_dir = File::Temp->newdir( 'CPAN-Mini-Devel-Recent-XXXXXXX',
     DIR => File::Spec->tmpdir,
 );
 
@@ -54,17 +60,14 @@ sub _get_mirror_list {
         my $self  = shift;
 
     ## CPAN::Mini::Devel::Recent addition using find-ls.gz
-    my $recent =  File::Spec->catfile(
-        $self->{scratch},
-        qw(authors RECENT-1h.yaml)
-    );
+    my @recent = map {File::Spec->catfile($self->{scratch}, $_)} @recent_files;
 
     my $packages = File::Spec->catfile(
         $self->{scratch},
         qw(modules 02packages.details.txt.gz)
     );
-    
-    return $self->_parse_module_index( $packages, $recent );
+
+    return $self->_parse_module_index( $packages, @recent );
 }
 
 #--------------------------------------------------------------------------#
@@ -72,7 +75,7 @@ sub _get_mirror_list {
 #--------------------------------------------------------------------------#
 
 my $module_index_re = qr{
-    ^\s href="\.\./authors/id/./../    # skip prelude 
+    ^\s href="\.\./authors/id/./../    # skip prelude
     ([^"]+)                     # capture to next dquote mark
     .+? </a>                    # skip to end of hyperlink
     \s+                         # skip spaces
@@ -80,12 +83,12 @@ my $module_index_re = qr{
     \s+                         # skip spaces
     (\S+)                       # capture day
     \s+                         # skip spaces
-    (\S+)                       # capture month 
+    (\S+)                       # capture month
     \s+                         # skip spaces
     (\S+)                       # capture year
-}xms; 
+}xms;
 
-my %months = ( 
+my %months = (
     Jan => '01', Feb => '02', Mar => '03', Apr => '04', May => '05',
     Jun => '06', Jul => '07', Aug => '08', Sep => '09', Oct => '10',
     Nov => '11', Dec => '12'
@@ -95,21 +98,14 @@ my %months = (
 # note on archive suffixes -- .pm.gz shows up in 02packagesf
 my %re = (
     perls => qr{(?:
-                  /(?:emb|syb|bio)?perl-\d 
-                | /(?:parrot|ponie|kurila|Perl6-Pugs)-\d 
-                | /perl-?5\.004 
-                | /perl_mlb\.zip 
+                  /(?:emb|syb|bio)?perl-\d
+                | /(?:parrot|ponie|kurila|Perl6-Pugs)-\d
+                | /perl-?5\.004
+                | /perl_mlb\.zip
+                | /Per6-Pugs
     )}xi,
     archive => qr{\.(?:tar\.(?:bz2|gz|Z)|t(?:gz|bz)|(?<!ppm\.)zip|pm.gz)$}i,
-    target_dir => qr{
-        ^(?:
-            modules/by-module/[^/]+/./../ | 
-            modules/by-module/[^/]+/ | 
-            modules/by-category/[^/]+/[^/]+/./../ | 
-            modules/by-category/[^/]+/[^/]+/ | 
-            authors/id/./../ 
-        )
-    }x,
+    target_dir => qr{^id/\w/\w\w/},
     leading_initials => qr{(.)/\1./},
 );
 
@@ -123,7 +119,7 @@ $re{split_them} = qr{^(.+?)$re{version_suffix}$};
 # and not other "AUTHOR/subdir/whatever"
 
 # Just get AUTHOR/tarball.suffix from whatever file name is passed in
-sub _get_base_id { 
+sub _get_base_id {
     my $file = shift;
     my $base_id = $file;
     $base_id =~ s{$re{target_dir}}{};
@@ -137,6 +133,7 @@ sub _base_name {
     return $base_name;
 }
 
+
 #--------------------------------------------------------------------------#
 # _parse_module_index
 #
@@ -144,12 +141,12 @@ sub _base_name {
 #--------------------------------------------------------------------------#-
 
 sub _parse_module_index {
-    my ($self, $packages, $recent ) = @_;
+    my ($self, $packages, @recent ) = @_;
 
         # first walk the packages list
     # and build an index
 
-    my (%valid_bases, %valid_distros, %mirror);
+    my (%valid_distros, %mirror);
     my (%latest, %latest_dev);
 
     my $gz = Compress::Zlib::gzopen($packages, "rb")
@@ -164,15 +161,22 @@ sub _parse_module_index {
         }
 
         my ($module, $version, $path) = split;
+
+        # shouldn't happen, but 02packages has in the past indexed a PPM file
+        next unless $path =~ $re{archive};
+
         next if $self->_filter_module({
                 module  => $module,
                 version => $version,
                 path    => $path,
             });
-        
-        my $base_id = _get_base_id("authors/id/$path");
+
+
+        my $base_id = _get_base_id("id/$path")
+          or $self->trace("Error getting base_id of '$path'\n");
         $valid_distros{$base_id}++;
-        my $base_name = _base_name( $base_id );
+        my $base_name = _base_name( $base_id )
+          or $self->trace("Error getting base_name of '$base_id'\n");
         if ($base_name) {
             $latest{$base_name} = {
                 datetime => 0,
@@ -181,48 +185,44 @@ sub _parse_module_index {
         }
     }
 
-#    use DDS;
-#    $self->trace("Distros\n");
-#    Dump \%valid_distros;
-#    $self->trace("Bases\n");
-#    Dump \%valid_bases;
-
     # next walk the recent list
     $self->trace( "Scanning RECENT files for dev releases ...\n" );
-    my $rr = File::Rsync::Mirror::Recent->new( local => $recent );
-    my $records = $rr->news;
 
-    my @epoch_order = sort { $records->[$a]{epoch} <=> $records->[$b]{epoch} } 
-                      0 .. @$records - 1;
-    
     my %living;
-    for my $i ( @epoch_order ) {
-      my $rec = $records->[$i];
-      if ( $rec->{type} eq 'new' ) {
-        $living{$rec->{path}} = 1;
-      }
-      elsif ( $rec->{type} eq 'delete' ) {
-        $living{$rec->{path}} = 0;
+
+    for my $rr ( reverse @recent ) {
+      my $yaml = LoadFile( $rr );
+      my ($add, $del) = (0,0);
+      for my $rec ( sort {$a->{epoch} <=> $b->{epoch}} @{$yaml->{recent}} ) {
+        if ( $rec->{type} eq 'new' ) {
+          $living{$rec->{path}} = $rec;
+          $add++;
+        }
+        elsif ( $rec->{type} eq 'delete' ) {
+          delete $living{$rec->{path}};
+          $del++;
+        }
       }
     }
 
-    for my $i ( @epoch_order ) {
-        next unless $living{$records->[$i]{path}};
+    my $match = 0;
+    for my $rec ( sort {$a->{epoch} <=> $b->{epoch}} values %living ) {
         my %stat;
-        @stat{qw/name datetime type/}=@{$records->[$i]}{qw/path epoch type/};
-        
+        @stat{qw/name datetime type/}=@{$rec}{qw/path epoch type/};
+
         # skip things that aren't a tarball
-        next unless $stat{name} =~ $re{target_dir};
         next unless $stat{name} =~ $re{archive};
 
-        # skip if not AUTHOR/tarball 
+        # skip if not AUTHOR/tarball
         # skip perls
-        my $base_id = _get_base_id($stat{name});
-        next unless $base_id; 
-        
+        my $base_id = _get_base_id($stat{name})
+          or $self->trace("Error getting base_id of '$stat{name}'\n");
+        next unless $base_id;
+
         next if $base_id =~ $re{perls};
 
-        my $base_name = _base_name( $base_id );
+        my $base_name = _base_name( $base_id )
+          or $self->trace("# Error getting base_name from '$base_id'");
 
         # if $base_id matches 02packages, then it is the latest version
         # and we definitely want it; also update datetime from the initial
@@ -230,27 +230,26 @@ sub _parse_module_index {
         if ( $valid_distros{$base_id} ) {
             $mirror{$base_id} = $stat{datetime};
             next unless $base_name;
+            $latest{$base_name}{base_id} = $base_id;
             if ( $stat{datetime} > $latest{$base_name}{datetime} ) {
-                $latest{$base_name} = { 
-                    datetime => $stat{datetime}, 
-                    base_id => $base_id
-                };
+                $latest{$base_name}{datetime} = $stat{datetime};
             }
+            $match++;
         }
-        # if not in the packages file, we only want it if it resembles 
+        # if not in the packages file, we only want it if it resembles
         # something in the package file and we only the most recent one
         else {
             # skip if couldn't parse out the name without version number
             next unless defined $base_name;
 
             # skip unless there's a matching base from the packages file
-            next unless $latest{$base_name};
+            next unless exists $latest{$base_name};
 
             # keep only the latest
             $latest_dev{$base_name} ||= { datetime => 0 };
             if ( $stat{datetime} > $latest_dev{$base_name}{datetime} ) {
-                $latest_dev{$base_name} = { 
-                    datetime => $stat{datetime}, 
+                $latest_dev{$base_name} = {
+                    datetime => $stat{datetime},
                     base_id => $base_id
                 };
             }
@@ -258,21 +257,25 @@ sub _parse_module_index {
     }
 
     # pick up anything from packages we didn't already get (shouldn't happen)
-    for my $name ( keys %latest ) {
-        my $base_id = $latest{$name}{base_id};
-        $mirror{$base_id} = $latest{$name}{datetime} unless $mirror{$base_id};
+    my $missing = 0;
+    for my $base_name ( keys %latest ) {
+        my $base_id = $latest{$base_name}{base_id};
+        next if exists $mirror{$base_id};
+        $mirror{$base_id} = $latest{$base_name}{datetime};
+        $missing++;
     }
-          
+
     # for dev versions, it must be newer than the latest version of
     # the same base name from the packages file
 
-    for my $name ( keys %latest_dev ) {
-        if ( ! $latest{$name} ) {
-            $self->trace( "Shouldn't be missing '$name' matching '$latest_dev{$name}{base_id}'\n" );
+    for my $base_name ( keys %latest_dev ) {
+        if ( ! $latest{$base_name} ) {
+            $self->trace( "Shouldn't be missing '$base_name' matching '$latest_dev{$base_name}{base_id}'\n" );
             next;
         }
-        next if $latest{$name}{datetime} > $latest_dev{$name}{datetime};
-        $mirror{ $latest_dev{$name}{base_id} } = $latest_dev{$name}{datetime} 
+        next if $latest{$base_name}{datetime} > $latest_dev{$base_name}{datetime};
+        my $base_id = $latest_dev{$base_name}{base_id};
+        $mirror{ $base_id } = $latest_dev{$base_name}{datetime};
     }
 
     my $mirror_list =
