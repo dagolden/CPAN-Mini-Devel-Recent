@@ -17,9 +17,9 @@ requires:
   CPAN::Tarzip: 0
   File::Basename: 0
   File::Path: 0
-  File::Rsync::Mirror::Recent: v0.0.7
   File::Spec: 3.27
   File::Temp: 0.2
+  YAML::Syck: 1.07
   perl: 5.006
 configure_requires:
   Module::Build: 0.3305

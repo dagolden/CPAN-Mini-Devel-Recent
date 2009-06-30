@@ -9,9 +9,9 @@ WriteMakefile
           'EXE_FILES' => [],
           'VERSION_FROM' => 'lib/CPAN/Mini/Devel/Recent.pm',
           'PREREQ_PM' => {
-                           'File::Rsync::Mirror::Recent' => 'v0.0.7',
                            'File::Spec' => '3.27',
                            'CPAN::Tarzip' => 0,
+                           'YAML::Syck' => '1.07',
                            'Test::More' => '0.62',
                            'CPAN::Mini' => '0.567',
                            'File::Temp' => '0.2',
