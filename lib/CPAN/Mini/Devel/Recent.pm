@@ -14,8 +14,6 @@ use File::Temp 0.20;
 use File::Spec;
 use File::Path ();
 use File::Basename qw/basename/;
-use File::Rsync::Mirror::Recent;
-use File::Rsync::Mirror::Recentfile;
 use YAML::Syck 'LoadFile';
 
 our @ISA = 'CPAN::Mini';

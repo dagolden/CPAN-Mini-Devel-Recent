@@ -20,7 +20,7 @@ $class->new(
         'File::Path' => 0,
         'File::Spec' => 3.27, 
         'File::Temp' => 0.20, 
-        'File::Rsync::Mirror::Recent' => 'v0.0.7',
+        'YAML::Syck' => 1.07,
     },
     build_requires => {
         'Test::More' => 0.62, # 0.47 in perl 5.006002; 0.62 in perl 5.008008; 
