@@ -308,7 +308,7 @@ This documentation describes version %%VERSION%%.
 
 CPAN::Mini::Devel::Recent is similar to [CPAN::Mini::Devel], except it
 uses the new, experimental {RECENT-*} index files on CPAN, which are updated
-more frequently than {indices/find-ls.gz} file.
+more frequently than the {indices/find-ls.gz} file that CPAN::Mini::Devel uses.
 
 Normally, [CPAN::Mini] creates a minimal CPAN mirror with the latest version of
 each distribution, but excluding developer releases (those with an underscore
@@ -328,7 +328,7 @@ yet synchronized on the mirror.
 
 = USAGE
 
-See [Mini::CPAN].
+See [CPAN::Mini].
 
 = BUGS
 
