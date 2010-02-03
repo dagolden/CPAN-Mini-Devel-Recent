@@ -15,6 +15,7 @@ $class->new(
         'CPAN' => 1.92, 
         'CPAN::HandleConfig' => 0, # 5.405725 is new
         'CPAN::Mini' => 0.567,
+        'CPAN::Mini::Devel' => 0.03,
         'CPAN::Tarzip' => 0, 
         'File::Basename' => 0,
         'File::Path' => 0,

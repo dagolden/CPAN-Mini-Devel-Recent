@@ -2,8 +2,8 @@ package CPAN::Mini::Devel::Recent;
 use 5.006;
 use strict;
 use warnings;
-our $VERSION = '0.01';
-$VERSION = eval $VERSION; ## no critic
+our $VERSION = "0.02";
+$VERSION = "0.02"; ## no critic
 
 use Config;
 use CPAN::Mini;

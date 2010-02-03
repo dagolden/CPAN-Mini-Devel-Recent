@@ -1,5 +1,10 @@
 Revision history for Perl module CPAN::Mini::Devel::Recent
 
+0.02 in progress
+
+  Bug fixes:
+
+  - added CPAN::Mini::Devel to prereqs
     
 0.01 Tue Jun 30 19:15:22 EDT 2009
 
