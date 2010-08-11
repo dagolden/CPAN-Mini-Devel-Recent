@@ -1,22 +1,21 @@
-package CPAN::Mini::Devel::Recent;
 use 5.006;
 use strict;
 use warnings;
-our $VERSION = "0.02";
-$VERSION = "0.02"; ## no critic
+package CPAN::Mini::Devel::Recent;
+# ABSTRACT: Create CPAN::Mini mirror with recent developer releases
 
 use Config;
-use CPAN::Mini;
-use CPAN ();
+use CPAN::Mini 0.567;
+use CPAN 1.92 ();
 use CPAN::Tarzip;
 use CPAN::HandleConfig;
 use File::Temp 0.20;
-use File::Spec;
+use File::Spec 3.27;
 use File::Path ();
 use File::Basename qw/basename/;
-use YAML::Syck 'LoadFile';
+use YAML::Syck 1.07 qw/LoadFile/;
 
-our @ISA = 'CPAN::Mini';
+our @ISA = qw/CPAN::Mini/;
 
 #--------------------------------------------------------------------------#
 # globals
@@ -286,19 +285,9 @@ sub _parse_module_index {
 
 __END__
 
-#--------------------------------------------------------------------------#
-# pod documentation 
-#--------------------------------------------------------------------------#
+=for Pod::Coverage DEBUG
 
 =begin wikidoc
-
-= NAME
-
-CPAN::Mini::Devel::Recent - Create CPAN::Mini mirror with recent developer releases
-
-= VERSION
-
-This documentation describes version %%VERSION%%.
 
 = SYNOPSIS
 
@@ -343,29 +332,6 @@ existing test-file that illustrates the bug or desired feature.
 
 * [CPAN::Mini]
 * [CPAN::Mini::Devel]
-
-= AUTHOR
-
-David A. Golden (DAGOLDEN)
-
-= COPYRIGHT AND LICENSE
-
-Copyright (c) 2009 by David A. Golden
-
-Licensed under the Apache License, Version 2.0 (the "License");
-you may not use this file except in compliance with the License.
-You may obtain a copy of the License at
-[http://www.apache.org/licenses/LICENSE-2.0]
-
-Files produced as output though the use of this software, shall not be
-considered Derivative Works, but shall be considered the original work of the
-Licensor.
-
-Unless required by applicable law or agreed to in writing, software
-distributed under the License is distributed on an "AS IS" BASIS,
-WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-See the License for the specific language governing permissions and
-limitations under the License.
 
 =end wikidoc
 
