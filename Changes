@@ -2,6 +2,8 @@ Revision history for Perl module CPAN::Mini::Devel::Recent
 
 {{ $NEXT }}
 
+0.06      2011-01-05 22:11:01 EST5EDT
+
   Bug fixes
 
   - New compile tests should be more robust
