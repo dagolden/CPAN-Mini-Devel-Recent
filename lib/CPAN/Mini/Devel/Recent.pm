@@ -289,19 +289,18 @@ __END__
 
 =for Pod::Coverage DEBUG
 
-=begin wikidoc
-
-= SYNOPSIS
+=head1 SYNOPSIS
 
     $ minicpan -c CPAN::Mini::Devel::Recent
 
-= DESCRIPTION
+=head1 DESCRIPTION
 
-CPAN::Mini::Devel::Recent is similar to [CPAN::Mini::Devel], except it
-uses the new, experimental {RECENT-*} index files on CPAN, which are updated
-more frequently than the {indices/find-ls.gz} file that CPAN::Mini::Devel uses.
+CPAN::Mini::Devel::Recent is similar to L<CPAN::Mini::Devel>, except it
+uses the C<RECENT-*> index files on CPAN, which are updated
+more frequently than the C<indices/find-ls.gz> file that CPAN::Mini::Devel
+uses.
 
-Normally, [CPAN::Mini] creates a minimal CPAN mirror with the latest version of
+Normally, L<CPAN::Mini> creates a minimal CPAN mirror with the latest version of
 each distribution, but excluding developer releases (those with an underscore
 in the version number, like 0.10_01).
 
@@ -317,24 +316,13 @@ name already in the normal CPAN packages list.
 There may be errors retrieving very new modules if they are indexed but not
 yet synchronized on the mirror.
 
-= USAGE
+=head1 USAGE
 
-See [CPAN::Mini].
+See L<CPAN::Mini>.
 
-= BUGS
+=head1 SEE ALSO
 
-Please report any bugs or feature using the CPAN Request Tracker.  
-Bugs can be submitted through the web interface at 
-[http://rt.cpan.org/Dist/Display.html?Queue=CPAN-Mini-Devel-Recent]
-
-When submitting a bug or request, please include a test-file or a patch to an
-existing test-file that illustrates the bug or desired feature.
-
-= SEE ALSO
-
-* [CPAN::Mini]
-* [CPAN::Mini::Devel]
-
-=end wikidoc
+* L<CPAN::Mini>
+* L<CPAN::Mini::Devel>
 
 =cut
