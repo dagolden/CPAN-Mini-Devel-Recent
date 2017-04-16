@@ -4,7 +4,7 @@ use warnings;
 package CPAN::Mini::Devel::Recent;
 # ABSTRACT: Create CPAN::Mini mirror with recent developer releases
 
-our $VERSION = '0.07';
+our $VERSION = '0.08';
 
 use Config;
 use CPAN::Mini 0.567;
